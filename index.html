@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>お祭り抽選アプリ</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@700&family=Zen+Maru+Gothic:wght@700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+            background-color: #1a1a2e;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 夜空の背景 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #2c3e50 0%, #1a1a2e 100%);
+            z-index: -3;
+        }
+
+        /* 星の背景 */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+        }
+
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            animation: twinkle 1s infinite alternate;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        /* 提灯の装飾 */
+        .lanterns {
+            position: fixed;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            z-index: -1;
+            display: flex;
+            justify-content: space-around;
+            pointer-events: none;
+        }
+
+        .lantern {
+            width: 40px;
+            height: 60px;
+            background: #e74c3c;
+            border-radius: 20px;
+            position: relative;
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.6);
+            animation: swing 3s infinite ease-in-out;
+        }
+
+        .lantern::before {
+            content: '🏮';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+        }
+
+        @keyframes swing {
+            0%, 100% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+        }
+
+        /* 屋台の装飾 */
+        .stalls {
+            position: fixed;
+            bottom: 40px;
+            left: 0;
+            width: 100%;
+            height: 120px;
+            z-index: -1;
+            display: flex;
+            justify-content: space-around;
+            pointer-events: none;
+            padding: 0 20px;
+        }
+
+        .stall {
+            width: 100px;
+            height: 100px;
+            position: relative;
+            transform: perspective(500px) rotateX(10deg);
+            margin: 0 10px;
+        }
+
+        .stall-sign {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 25px;
+            border-radius: 5px 5px 0 0;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #000000;
+            text-shadow: 
+                -1px -1px 0 #fff,
+                1px -1px 0 #fff,
+                -1px 1px 0 #fff,
+                1px 1px 0 #fff;
+            font-family: 'Zen Maru Gothic', sans-serif;
+            font-weight: bold;
+            z-index: 2;
+        }
+
+        .stall-sign.takoyaki {
+            background: #FF6B6B;
+        }
+
+        .stall-sign.yakisoba {
+            background: #FFA07A;
+        }
+
+        .stall-sign.kakigori {
+            background: #87CEEB;
+        }
+
+        .stall-sign.ringoame {
+            background: #FF69B4;
+        }
+
+        .stall-sign.kingyo {
+            background: #20B2AA;
+        }
+
+        .stall-sign::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 10px;
+            background: #8B4513;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        }
+
+        .stall-sign::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, 
+                transparent 0%,
+                rgba(255,255,255,0.1) 50%,
+                transparent 100%
+            );
+            border-radius: 5px 5px 0 0;
+        }
+
+        .stall::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 80%;
+            background: #8B4513;
+            border-radius: 5px 5px 0 0;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+
+        .stall::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120%;
+            height: 20%;
+            background: #A0522D;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+
+        .stall-noren {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            height: 40%;
+            display: flex;
+            flex-direction: row;
+            gap: 2px;
+            z-index: 1;
+        }
+
+        .noren-strip {
+            flex: 1;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .noren-strip:nth-child(odd) {
+            background: #e74c3c;
+        }
+
+        .noren-strip:nth-child(even) {
+            background: #ffffff;
+        }
+
+        .noren-strip::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(0deg, 
+                transparent 0%,
+                rgba(255,255,255,0.2) 50%,
+                transparent 100%
+            );
+            animation: noren-shine 2s infinite;
+        }
+
+        @keyframes noren-shine {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        .stall-light {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 20px;
+            background: #FFD700;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #FFD700;
+            animation: flicker 2s infinite;
+            z-index: 2;
+        }
+
+        .stall-decoration {
+            position: absolute;
+            top: -10px;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            background: repeating-linear-gradient(
+                45deg,
+                #FF0000,
+                #FF0000 10px,
+                #FFFFFF 10px,
+                #FFFFFF 20px
+            );
+            border-radius: 5px;
+        }
+
+        /* 花火のエフェクト */
+        .firework {
+            position: fixed;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            z-index: -1;
+        }
+
+        .firework-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            animation: explode 1.5s ease-out forwards;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        @keyframes explode {
+            0% {
+                transform: scale(1) translate(0, 0);
+                opacity: 1;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: scale(0) translate(var(--tx), var(--ty));
+                opacity: 0;
+            }
+        }
+
+        .firework-trail {
+            position: absolute;
+            width: 3px;
+            height: 30px;
+            background: linear-gradient(to top, transparent, var(--color));
+            box-shadow: 0 0 10px var(--color);
+            animation: trail 0.8s ease-out forwards;
+        }
+
+        @keyframes trail {
+            0% {
+                transform: translateY(0) scaleY(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-150px) scaleY(0);
+                opacity: 0;
+            }
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            border: 2px solid #e74c3c;
+            margin-top: 60px;
+            margin-bottom: 400px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .container::before {
+            content: '🎊';
+            position: absolute;
+            top: -20px;
+            left: -20px;
+            font-size: 100px;
+            opacity: 0.1;
+            transform: rotate(-15deg);
+        }
+
+        .container::after {
+            content: '🎉';
+            position: absolute;
+            bottom: -20px;
+            right: -20px;
+            font-size: 100px;
+            opacity: 0.1;
+            transform: rotate(15deg);
+        }
+
+        h1 {
+            color: #d63031;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+            font-family: 'Zen Maru Gothic', sans-serif;
+            background: linear-gradient(45deg, #d63031, #e74c3c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.2);
+            letter-spacing: 0.1em;
+            z-index: 3;
+        }
+
+        .target-illustration {
+            font-size: 1.5em;
+            animation: float 3s ease-in-out infinite;
+            filter: drop-shadow(0 0 10px rgba(231, 76, 60, 0.6));
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .draw-button {
+            background-color: #e74c3c;
+            color: white;
+            padding: 20px 40px;
+            border: none;
+            border-radius: 50px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+            font-family: 'Zen Maru Gothic', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            min-width: 250px;
+        }
+
+        .draw-button:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .draw-button:active {
+            transform: translateY(1px);
+        }
+
+        .draw-button::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent,
+                rgba(255,255,255,0.1),
+                transparent
+            );
+            transform: rotate(45deg);
+            transition: 0.5s;
+        }
+
+        .draw-button:hover::after {
+            left: 100%;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 32px;
+            font-weight: bold;
+            transition: all 0.3s;
+            animation: popIn 0.5s ease-out;
+            position: relative;
+            font-family: 'Zen Maru Gothic', sans-serif;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .win {
+            background-color: #fdcb6e;
+            color: #d63031;
+            animation: winAnimation 1s ease-out;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            min-height: 120px;
+        }
+
+        .win-number {
+            font-size: 0.8em;
+            background: rgba(255, 255, 255, 0.3);
+            padding: 5px 15px;
+            border-radius: 20px;
+            border: 2px solid #d63031;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Zen Maru Gothic', sans-serif;
+        }
+
+        .win-number-circle {
+            width: 40px;
+            height: 40px;
+            background: #d63031;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2em;
+            border: 2px solid white;
+            box-shadow: 0 0 10px rgba(214, 48, 49, 0.5);
+            font-family: 'Zen Maru Gothic', sans-serif;
+        }
+
+        @keyframes winAnimation {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .lose {
+            background-color: #636e72;
+            color: white;
+            animation: loseAnimation 1s ease-out;
+            position: relative;
+            padding: 15px 60px;
+            font-family: 'Zen Maru Gothic', sans-serif;
+            min-height: auto;
+        }
+
+        .lose::before {
+            content: '😢';
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8em;
+        }
+
+        .lose::after {
+            content: '😢';
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8em;
+        }
+
+        @keyframes loseAnimation {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+            100% { transform: translateX(0); }
+        }
+
+        .time-out {
+            background-color: #b2bec3;
+            color: white;
+        }
+
+        .remaining {
+            margin-top: 20px;
+            font-size: 20px;
+            color: #2d3436;
+            padding: 10px;
+            border-radius: 10px;
+            background-color: rgba(255,255,255,0.8);
+            font-family: 'Zen Maru Gothic', sans-serif;
+        }
+
+        .remaining-number {
+            font-size: 48px;
+            font-weight: bold;
+            color: #d63031;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            margin: 0 5px;
+            display: inline-block;
+            animation: pulse 2s infinite;
+            font-family: 'Zen Maru Gothic', sans-serif;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background-color: #fdcb6e;
+            animation: confetti-fall 3s linear infinite;
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100vh) rotate(0deg); }
+            100% { transform: translateY(100vh) rotate(360deg); }
+        }
+
+        .sad-face {
+            position: fixed;
+            font-size: 24px;
+            animation: floatUp 2s ease-out forwards;
+            opacity: 0;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-100px); opacity: 0; }
+        }
+
+        .rain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .raindrop {
+            position: absolute;
+            width: 2px;
+            height: 20px;
+            background: linear-gradient(transparent, rgba(255, 255, 255, 0.8));
+            animation: rain-fall linear infinite;
+        }
+
+        @keyframes rain-fall {
+            0% { transform: translateY(-100vh); }
+            100% { transform: translateY(100vh); }
+        }
+
+        /* ガーランドの装飾 */
+        .garlands {
+            position: fixed;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            z-index: -1;
+            display: flex;
+            justify-content: space-around;
+            pointer-events: none;
+        }
+
+        .garland {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .garland-triangle {
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-bottom: 30px solid #e74c3c;
+            position: relative;
+            animation: swing 3s infinite ease-in-out;
+            filter: drop-shadow(0 0 5px rgba(231, 76, 60, 0.6));
+        }
+
+        .garland-triangle::before {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: -10px;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            opacity: 0.3;
+        }
+
+        .garland-triangle::after {
+            content: '祭';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .garland-string {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent 0%,
+                #e74c3c 20%,
+                #e74c3c 80%,
+                transparent 100%
+            );
+            box-shadow: 0 0 10px rgba(231, 76, 60, 0.4);
+        }
+
+        @keyframes swing {
+            0%, 100% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars"></div>
+    <div class="lanterns">
+        <div class="lantern"></div>
+        <div class="lantern"></div>
+        <div class="lantern"></div>
+        <div class="lantern"></div>
+        <div class="lantern"></div>
+    </div>
+    <div class="stalls">
+        <div class="stall">
+            <div class="stall-sign takoyaki">たこ焼き</div>
+            <div class="stall-decoration"></div>
+            <div class="stall-light"></div>
+            <div class="stall-noren">
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+            </div>
+        </div>
+        <div class="stall">
+            <div class="stall-sign yakisoba">焼きそば</div>
+            <div class="stall-decoration"></div>
+            <div class="stall-light"></div>
+            <div class="stall-noren">
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+            </div>
+        </div>
+        <div class="stall">
+            <div class="stall-sign kakigori">かき氷</div>
+            <div class="stall-decoration"></div>
+            <div class="stall-light"></div>
+            <div class="stall-noren">
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+            </div>
+        </div>
+        <div class="stall">
+            <div class="stall-sign ringoame">りんご飴</div>
+            <div class="stall-decoration"></div>
+            <div class="stall-light"></div>
+            <div class="stall-noren">
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+            </div>
+        </div>
+        <div class="stall">
+            <div class="stall-sign kingyo">金魚すくい</div>
+            <div class="stall-decoration"></div>
+            <div class="stall-light"></div>
+            <div class="stall-noren">
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <h1>お祭り抽選</h1>
+        <button class="draw-button" onclick="drawLottery()">くじを引く<span class="target-illustration">🎯</span></button>
+        <div id="result" class="result"></div>
+        <div id="remaining" class="remaining">残りの当たり：<span class="remaining-number">0</span>個</div>
+    </div>
+    <div id="rain" class="rain"></div>
+    <script src="script.js"></script>
+</body>
+</html> 
