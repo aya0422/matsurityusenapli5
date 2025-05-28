@@ -4,6 +4,9 @@ const STORAGE_KEY = 'lotteryData';
 // 抽選の設定
 const START_TIME = 11 * 60; // 11:00
 const END_TIME = 17 * 60;   // 17:00
+const FIRST_HALF_END = 14 * 60; // 14:00
+const FIRST_HALF_WIN_COUNT = 18; // 前半の当たり数
+const SECOND_HALF_WIN_COUNT = 9; // 後半の当たり数
 const WIN_PROBABILITY = 0.3; // 30%の確率で当たり
 
 // 抽選データ
@@ -14,22 +17,25 @@ let lotteryData = {
 // 当たりの管理用オブジェクト
 let lotterySlots = {
     // 前半（11:00-14:00）の当たり枠
-    firstHalf: Array.from({ length: 18 }, (_, i) => ({
-        number: i + 1,
+    firstHalf: Array.from({ length: FIRST_HALF_WIN_COUNT }, (_, i) => ({
+        number: i + 1,  // 1-18番
         used: false,
-        timeSlot: new Date().setHours(11, i * 10, 0, 0)
+        timeSlot: new Date().setHours(11, i * 10, 0, 0)  // 10分ごと
     })),
     // 後半（14:00-17:00）の当たり枠
-    secondHalf: Array.from({ length: 9 }, (_, i) => ({
-        number: i + 19,
+    secondHalf: Array.from({ length: SECOND_HALF_WIN_COUNT }, (_, i) => ({
+        number: i + 19,  // 19-27番
         used: false,
-        timeSlot: new Date().setHours(14, i * 20, 0, 0)
+        timeSlot: new Date().setHours(14, i * 20, 0, 0)  // 20分ごと
     }))
 };
 
 // 花火の打ち上げを制御する変数
 let isFireworksActive = true;
 let backgroundFireworksInterval;
+
+// 最後の当たりが出た時刻を保存する変数
+let lastWinTime = null;
 
 // 星を生成
 function createStars() {
@@ -166,11 +172,18 @@ function loadLotteryData() {
         const parsedData = JSON.parse(savedData);
         // 日付をチェックして、新しい日ならデータをリセット
         if (isNewDay(parsedData.lastUpdated)) {
-            resetLotteryData();
+            // 当たりの履歴は保持したまま、スロットとlastWinTimeのみリセット
+            const winningNumbers = parsedData.winningNumbers || [];
+            resetLotteryData(winningNumbers);
         } else {
             lotterySlots = parsedData.slots;
             lotteryData = parsedData;
+            lastWinTime = parsedData.lastWinTime || null;  // lastWinTimeがundefinedの場合はnullを設定
+            console.log('読み込まれた最後の当たり時刻:', lastWinTime);
         }
+    } else {
+        // データが存在しない場合は初期化
+        resetLotteryData([]);
     }
 }
 
@@ -184,32 +197,53 @@ function isNewDay(lastUpdated) {
 }
 
 // データをリセット
-function resetLotteryData() {
+function resetLotteryData(winningNumbers = []) {
+    // 最後の当たりが出た時刻をリセット
+    lastWinTime = null;
+    console.log('当たり時刻をリセット');
+
+    // 抽選スロットのリセット
     lotterySlots = {
-        firstHalf: Array.from({ length: 18 }, (_, i) => ({
-            number: i + 1,
+        firstHalf: Array.from({ length: FIRST_HALF_WIN_COUNT }, (_, i) => ({
+            number: i + 1,  // 1-18番
             used: false,
-            timeSlot: new Date().setHours(11, i * 10, 0, 0)
+            timeSlot: new Date().setHours(11, i * 10, 0, 0)  // 10分ごと
         })),
-        secondHalf: Array.from({ length: 9 }, (_, i) => ({
-            number: i + 19,
+        secondHalf: Array.from({ length: SECOND_HALF_WIN_COUNT }, (_, i) => ({
+            number: i + 19,  // 19-27番
             used: false,
-            timeSlot: new Date().setHours(14, i * 20, 0, 0)
+            timeSlot: new Date().setHours(14, i * 20, 0, 0)  // 20分ごと
         }))
     };
+    
+    // 使用済み番号をリセット
+    usedNumbers = [];
+    saveUsedNumbers();
+    
+    // 抽選データをリセット
     lotteryData = {
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
+        lastWinTime: null,
+        winningNumbers: winningNumbers
     };
+    
+    // 更新されたデータを保存
     saveLotteryData();
+    
+    // 残りの当たり数を更新
+    updateRemainingDisplay();
 }
 
 // データをローカルストレージに保存
 function saveLotteryData() {
     const dataToSave = {
         slots: lotterySlots,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
+        lastWinTime: lastWinTime,
+        winningNumbers: lotteryData.winningNumbers || []
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+    console.log('保存された最後の当たり時刻:', lastWinTime);
 }
 
 // 現在時刻が利用可能時間内かチェック
@@ -230,14 +264,15 @@ function getCurrentTimeSlot() {
     const now = new Date();
     const hours = now.getHours();
     const minutes = now.getMinutes();
+    const currentTime = hours * 60 + minutes;
     
-    if (hours >= 11 && hours < 14) {
+    if (currentTime >= START_TIME && currentTime < FIRST_HALF_END) {
         // 前半（11:00-14:00）
-        const slotIndex = Math.floor((hours - 11) * 6 + minutes / 10);
+        const slotIndex = Math.floor((currentTime - START_TIME) / 10);
         return { period: 'firstHalf', index: slotIndex };
-    } else if (hours >= 14 && hours < 17) {
+    } else if (currentTime >= FIRST_HALF_END && currentTime < END_TIME) {
         // 後半（14:00-17:00）
-        const slotIndex = Math.floor((hours - 14) * 3 + minutes / 20);
+        const slotIndex = Math.floor((currentTime - FIRST_HALF_END) / 20);
         return { period: 'secondHalf', index: slotIndex };
     }
     return null;
@@ -249,137 +284,691 @@ function getCurrentTimeSlotWin() {
     if (!timeSlot) return null;
 
     const slots = lotterySlots[timeSlot.period];
-    if (timeSlot.index >= slots.length) return null;
+    // 未使用のスロットをフィルタリング
+    const availableSlots = slots.filter(slot => !slot.used);
+    if (availableSlots.length === 0) return null;
 
-    const slot = slots[timeSlot.index];
-    if (slot.used) return null;
-
-    return slot;
-}
-
-// 残りの当たり数を計算
-function getRemainingWins() {
-    const firstHalfRemaining = lotterySlots.firstHalf.filter(slot => !slot.used).length;
-    const secondHalfRemaining = lotterySlots.secondHalf.filter(slot => !slot.used).length;
-    return firstHalfRemaining + secondHalfRemaining;
-}
-
-// 紙吹雪エフェクトを生成
-function createConfetti() {
-    const colors = ['#fdcb6e', '#e74c3c', '#0984e3', '#00b894'];
-    for (let i = 0; i < 50; i++) {
-        const confetti = document.createElement('div');
-        confetti.className = 'confetti';
-        confetti.style.left = Math.random() * 100 + 'vw';
-        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-        confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
-        document.body.appendChild(confetti);
-        
-        // アニメーション終了後に要素を削除
-        setTimeout(() => {
-            confetti.remove();
-        }, 5000);
-    }
-}
-
-// 雨エフェクトを生成
-function createRain() {
-    const rainContainer = document.getElementById('rain');
-    rainContainer.innerHTML = ''; // 既存の雨をクリア
-    
-    for (let i = 0; i < 100; i++) {
-        const raindrop = document.createElement('div');
-        raindrop.className = 'raindrop';
-        raindrop.style.left = Math.random() * 100 + 'vw';
-        raindrop.style.animationDuration = (Math.random() * 1 + 0.5) + 's';
-        raindrop.style.opacity = Math.random() * 0.5 + 0.5;
-        rainContainer.appendChild(raindrop);
-    }
-    
-    // 3秒後に雨を消す
-    setTimeout(() => {
-        rainContainer.innerHTML = '';
-    }, 3000);
-}
-
-// 悲しい顔エフェクトを生成
-function createSadFaces() {
-    const sadEmojis = ['😢', '😭', '😔', '😞'];
-    for (let i = 0; i < 5; i++) {
-        const sadFace = document.createElement('div');
-        sadFace.className = 'sad-face';
-        sadFace.textContent = sadEmojis[Math.floor(Math.random() * sadEmojis.length)];
-        sadFace.style.left = Math.random() * 100 + 'vw';
-        document.body.appendChild(sadFace);
-        
-        // アニメーション終了後に要素を削除
-        setTimeout(() => {
-            sadFace.remove();
-        }, 2000);
-    }
+    // ランダムに1つのスロットを選択
+    const randomIndex = Math.floor(Math.random() * availableSlots.length);
+    return availableSlots[randomIndex];
 }
 
 // 残りの当たり数を表示
 function updateRemainingDisplay() {
     const remaining = getRemainingWins();
     const remainingDiv = document.getElementById('remaining');
-    remainingDiv.innerHTML = `残りのあたり：<span class="remaining-number">${remaining}</span>個`;
+    if (remainingDiv) {
+        remainingDiv.innerHTML = `残りのあたり：<span class="remaining-number">${remaining}</span>個`;
+        console.log('表示を更新: 残りの当たり数 =', remaining);
+    }
+}
+
+// 残りの当たり数を計算
+function getRemainingWins() {
+    // 前半（11:00-14:00）の残り数を計算
+    const firstHalfRemaining = lotterySlots.firstHalf.filter(slot => !slot.used).length;
+    const firstHalfUsed = FIRST_HALF_WIN_COUNT - firstHalfRemaining;
+
+    // 後半（14:00-17:00）の残り数を計算
+    const secondHalfRemaining = lotterySlots.secondHalf.filter(slot => !slot.used).length;
+    const secondHalfUsed = SECOND_HALF_WIN_COUNT - secondHalfRemaining;
+
+    // 現在時刻を取得
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const currentTimeInMinutes = hours * 60 + minutes;
+
+    // デバッグ情報を表示
+    console.log('現在時刻:', `${hours}:${minutes.toString().padStart(2, '0')}`);
+    console.log('前半の総当たり数:', FIRST_HALF_WIN_COUNT);
+    console.log('前半の使用済み当たり数:', firstHalfUsed);
+    console.log('前半の残り当たり数:', firstHalfRemaining);
+    console.log('後半の総当たり数:', SECOND_HALF_WIN_COUNT);
+    console.log('後半の使用済み当たり数:', secondHalfUsed);
+    console.log('後半の残り当たり数:', secondHalfRemaining);
+
+    // 全体の残り数を計算
+    const totalRemaining = firstHalfRemaining + secondHalfRemaining;
+    console.log('全体の残り当たり数:', totalRemaining);
+
+    return totalRemaining;
+}
+
+// ボタンの表示/非表示を制御する関数
+function toggleDrawButton(show, isResult = false) {
+    const drawButton = document.querySelector('.draw-button');
+    if (!drawButton) {
+        console.error('ボタンが見つかりません');
+        return;
+    }
+
+    if (show) {
+        drawButton.style.display = 'inline-flex';
+        drawButton.textContent = isResult ? '抽選結果' : 'くじを引く';
+        drawButton.disabled = false;
+        console.log('ボタンを表示:', drawButton.textContent);
+    } else {
+        drawButton.style.display = 'none';
+        drawButton.disabled = true;
+        console.log('ボタンを非表示');
+    }
+}
+
+// 効果音を生成・再生する関数
+function playSound(soundType) {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    switch (soundType) {
+        case 'win':
+            // 当たりの効果音（太鼓の音 + 花火の音 + 派手な当たり音）
+            playTaikoSound(audioContext);
+            setTimeout(() => playFireworkSound(audioContext), 300);
+            setTimeout(() => playWinSound(audioContext), 600);
+            break;
+        case 'lose':
+            // はずれの効果音（控えめな音）
+            playLoseSound(audioContext);
+            break;
+    }
+}
+
+// 太鼓の音を生成
+function playTaikoSound(audioContext) {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(100, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.2);
+    
+    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.2);
+}
+
+// 花火の音を生成
+function playFireworkSound(audioContext) {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.3);
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.3);
+}
+
+// 当たりの音を生成
+function playWinSound(audioContext) {
+    // メインの音
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    // 和音を生成
+    const frequencies = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+    const currentTime = audioContext.currentTime;
+    
+    // 音量エンベロープ
+    gainNode.gain.setValueAtTime(0, currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.5, currentTime + 0.1);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 1.0);
+    
+    // 周波数変化
+    oscillator.frequency.setValueAtTime(frequencies[0], currentTime);
+    oscillator.frequency.setValueAtTime(frequencies[1], currentTime + 0.1);
+    oscillator.frequency.setValueAtTime(frequencies[2], currentTime + 0.2);
+    oscillator.frequency.setValueAtTime(frequencies[3], currentTime + 0.3);
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.start();
+    oscillator.stop(currentTime + 1.0);
+
+    // 追加の効果音
+    setTimeout(() => {
+        const subOscillator = audioContext.createOscillator();
+        const subGainNode = audioContext.createGain();
+        
+        subOscillator.type = 'sine';
+        subOscillator.frequency.setValueAtTime(392.00, audioContext.currentTime); // G4
+        subOscillator.frequency.setValueAtTime(523.25, audioContext.currentTime + 0.1); // C5
+        subOscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.2); // E5
+        
+        subGainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        subGainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        
+        subOscillator.connect(subGainNode);
+        subGainNode.connect(audioContext.destination);
+        
+        subOscillator.start();
+        subOscillator.stop(audioContext.currentTime + 0.5);
+    }, 200);
+
+    // さらに追加の効果音
+    setTimeout(() => {
+        const finalOscillator = audioContext.createOscillator();
+        const finalGainNode = audioContext.createGain();
+        
+        finalOscillator.type = 'square';
+        finalOscillator.frequency.setValueAtTime(1046.50, audioContext.currentTime); // C6
+        finalOscillator.frequency.setValueAtTime(1318.51, audioContext.currentTime + 0.1); // E6
+        finalOscillator.frequency.setValueAtTime(1567.98, audioContext.currentTime + 0.2); // G6
+        
+        finalGainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+        finalGainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        
+        finalOscillator.connect(finalGainNode);
+        finalGainNode.connect(audioContext.destination);
+        
+        finalOscillator.start();
+        finalOscillator.stop(audioContext.currentTime + 0.3);
+    }, 400);
+}
+
+// はずれの音を生成
+function playLoseSound(audioContext) {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(392, audioContext.currentTime); // G4
+    oscillator.frequency.exponentialRampToValueAtTime(349.23, audioContext.currentTime + 0.3); // F4
+    oscillator.frequency.exponentialRampToValueAtTime(329.63, audioContext.currentTime + 0.6); // E4
+    
+    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.15, audioContext.currentTime + 0.3);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.6);
+}
+
+// 当たり番号を保存する関数
+function saveWinningNumber(number) {
+    if (!number) return;  // 番号が存在しない場合は保存しない
+
+    const now = new Date();
+    const winningNumber = {
+        number: number,
+        timestamp: now.toLocaleString('ja-JP', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        })
+    };
+
+    // 既存の当たり番号を読み込む
+    let winningNumbers = [];
+    const savedNumbers = localStorage.getItem('winningNumbers');
+    if (savedNumbers) {
+        winningNumbers = JSON.parse(savedNumbers);
+    }
+
+    // 新しい当たり番号を追加
+    winningNumbers.push(winningNumber);
+
+    // ローカルストレージに保存
+    localStorage.setItem('winningNumbers', JSON.stringify(winningNumbers));
+}
+
+// 当たり番号を読み込む関数
+function loadWinningNumbers() {
+    const savedNumbers = localStorage.getItem('winningNumbers');
+    if (savedNumbers) {
+        return JSON.parse(savedNumbers);
+    }
+    return [];
+}
+
+// 使用済みの番号を管理する配列
+let usedNumbers = [];
+
+// 使用済みの番号を読み込む関数
+function loadUsedNumbers() {
+    const savedUsedNumbers = localStorage.getItem('usedNumbers');
+    if (savedUsedNumbers) {
+        usedNumbers = JSON.parse(savedUsedNumbers);
+        console.log('使用済み番号を読み込み:', usedNumbers);
+        
+        // 使用済み番号に基づいてスロットの状態を更新
+        usedNumbers.forEach(number => {
+            if (number <= FIRST_HALF_WIN_COUNT) {
+                const slotIndex = lotterySlots.firstHalf.findIndex(slot => slot.number === number);
+                if (slotIndex !== -1) {
+                    lotterySlots.firstHalf[slotIndex].used = true;
+                }
+            } else {
+                const slotIndex = lotterySlots.secondHalf.findIndex(slot => slot.number === number);
+                if (slotIndex !== -1) {
+                    lotterySlots.secondHalf[slotIndex].used = true;
+                }
+            }
+        });
+    }
+}
+
+// 使用済みの番号を保存する関数
+function saveUsedNumbers() {
+    localStorage.setItem('usedNumbers', JSON.stringify(usedNumbers));
+    console.log('使用済み番号を保存:', usedNumbers);
+}
+
+// 当たりを判定する関数
+function determineWin() {
+    // 現在時刻を取得
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const currentTimeInMinutes = hours * 60 + minutes;
+
+    // デバッグ情報を表示
+    console.log('現在時刻:', `${hours}:${minutes.toString().padStart(2, '0')}`);
+    console.log('残りの当たり数:', getRemainingWins());
+    console.log('時間外かどうか:', currentTimeInMinutes < START_TIME || currentTimeInMinutes >= END_TIME);
+    console.log('前半/後半:', currentTimeInMinutes < FIRST_HALF_END ? '前半' : '後半');
+    console.log('最後の当たり時刻:', lastWinTime ? `${Math.floor(lastWinTime / 60)}:${(lastWinTime % 60).toString().padStart(2, '0')}` : 'なし');
+
+    // 時間外の場合は当たりなし
+    if (currentTimeInMinutes < START_TIME || currentTimeInMinutes >= END_TIME) {
+        console.log('時間外のため当たりなし');
+        return false;
+    }
+
+    // 残りの当たり数をチェック
+    const remainingWins = getRemainingWins();
+    if (remainingWins <= 0) {
+        console.log('当たりが残っていないため当たりなし');
+        return false;
+    }
+
+    // 最後の当たりが出た時刻が設定されていない場合、開始時刻を設定
+    if (lastWinTime === null) {
+        lastWinTime = START_TIME;
+        console.log('最初の当たり判定');
+        return true;
+    }
+
+    // 前半（11:00-14:00）の場合
+    if (currentTimeInMinutes < FIRST_HALF_END) {
+        const minutesSinceLastWin = currentTimeInMinutes - lastWinTime;
+        const firstHalfRemaining = lotterySlots.firstHalf.filter(slot => !slot.used).length;
+        if (firstHalfRemaining > 0 && minutesSinceLastWin >= 10) {
+            console.log('前半の当たり判定: 当たり', '最後の当たりから経過分数:', minutesSinceLastWin);
+            return true;
+        }
+        console.log('前半の当たり判定: はずれ', '次の当たりまで:', 10 - minutesSinceLastWin, '分');
+        return false;
+    }
+    // 後半（14:00-17:00）の場合
+    else {
+        const minutesSinceLastWin = currentTimeInMinutes - lastWinTime;
+        const secondHalfRemaining = lotterySlots.secondHalf.filter(slot => !slot.used).length;
+        if (secondHalfRemaining > 0 && minutesSinceLastWin >= 20) {
+            console.log('後半の当たり判定: 当たり', '最後の当たりから経過分数:', minutesSinceLastWin);
+            return true;
+        }
+        console.log('後半の当たり判定: はずれ', '次の当たりまで:', 20 - minutesSinceLastWin, '分');
+        return false;
+    }
+}
+
+// ランダムな当たり番号を生成する関数
+function generateRandomWinningNumber() {
+    // 現在時刻を取得
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const currentTimeInMinutes = hours * 60 + minutes;
+
+    // 最後の当たりが出た時刻を更新
+    lastWinTime = currentTimeInMinutes;
+    console.log('当たり時刻を更新:', `${hours}:${minutes.toString().padStart(2, '0')}`);
+    
+    // データを保存
+    saveLotteryData();
+
+    // 時間帯に応じて適切なスロットを選択
+    let slots;
+    if (currentTimeInMinutes < FIRST_HALF_END) {
+        // 前半（11:00-14:00）- 1-18番
+        slots = lotterySlots.firstHalf;
+        console.log('前半のスロットを選択');
+    } else {
+        // 後半（14:00-17:00）- 19-27番
+        slots = lotterySlots.secondHalf;
+        console.log('後半のスロットを選択');
+    }
+
+    // 未使用のスロットをフィルタリング
+    const availableSlots = slots.filter(slot => !slot.used);
+    console.log('利用可能なスロット数:', availableSlots.length);
+    
+    if (availableSlots.length === 0) {
+        console.log('利用可能な当たり番号がありません');
+        return null;
+    }
+
+    // ランダムに1つのスロットを選択
+    const randomIndex = Math.floor(Math.random() * availableSlots.length);
+    const selectedSlot = availableSlots[randomIndex];
+
+    console.log('選択された当たり番号:', selectedSlot.number);
+
+    // 選択されたスロットを使用済みにする
+    if (selectedSlot.number <= FIRST_HALF_WIN_COUNT) {
+        const slotIndex = lotterySlots.firstHalf.findIndex(slot => slot.number === selectedSlot.number);
+        if (slotIndex !== -1) {
+            lotterySlots.firstHalf[slotIndex].used = true;
+            console.log('前半のスロットを使用済みに設定:', selectedSlot.number);
+        }
+    } else {
+        const slotIndex = lotterySlots.secondHalf.findIndex(slot => slot.number === selectedSlot.number);
+        if (slotIndex !== -1) {
+            lotterySlots.secondHalf[slotIndex].used = true;
+            console.log('後半のスロットを使用済みに設定:', selectedSlot.number);
+        }
+    }
+
+    // 使用済み番号を保存
+    usedNumbers.push(selectedSlot.number);
+    saveUsedNumbers();
+
+    // データを保存
+    saveLotteryData();
+
+    // 残りの当たり数を更新
+    updateRemainingDisplay();
+
+    return selectedSlot.number;
+}
+
+// 抽選時間内かどうかをチェック
+function isLotteryTime() {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const currentTime = hours * 60 + minutes;
+    return currentTime >= START_TIME && currentTime < END_TIME;
+}
+
+// サイコロを表示する関数
+function showDice() {
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = `
+        <div class="dice-container">
+            <span>抽選中...</span>
+            <div class="dice">
+                <div class="dice-face"><div class="dot"></div></div>
+                <div class="dice-face"><div class="dot"></div><div class="dot"></div></div>
+                <div class="dice-face"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+                <div class="dice-face"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+                <div class="dice-face"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+                <div class="dice-face"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+            </div>
+        </div>
+    `;
+}
+
+// 雨のエフェクトを生成する関数
+function createRain() {
+    const rainContainer = document.createElement('div');
+    rainContainer.className = 'rain-container';
+    document.body.appendChild(rainContainer);
+
+    // 雨粒を生成
+    for (let i = 0; i < 50; i++) {
+        const raindrop = document.createElement('div');
+        raindrop.className = 'raindrop';
+        raindrop.style.left = `${Math.random() * 100}%`;
+        raindrop.style.animationDuration = `${0.5 + Math.random() * 0.5}s`;
+        raindrop.style.animationDelay = `${Math.random() * 0.5}s`;
+        rainContainer.appendChild(raindrop);
+    }
+
+    // 1秒後に雨のエフェクトを削除
+    setTimeout(() => {
+        rainContainer.remove();
+    }, 1000);
 }
 
 // 抽選実行
 function drawLottery() {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTime = currentHour * 60 + currentMinute;
-
-    // 時間外の場合は結果を表示
-    if (currentTime < START_TIME || currentTime > END_TIME) {
-        const resultDiv = document.getElementById('result');
-        resultDiv.className = 'result time-out';
-        resultDiv.innerHTML = '抽選時間外です';
+    const result = document.getElementById('result');
+    const remaining = document.querySelector('.remaining-number');
+    const drawButton = document.querySelector('.draw-button');
+    
+    if (!drawButton) {
+        console.error('ボタンが見つかりません');
         return;
     }
-
-    // 抽選処理
-    const resultDiv = document.getElementById('result');
-
-    // 当たりの判定
-    const currentSlot = getCurrentTimeSlotWin();
-    const isWin = currentSlot !== null;
     
-    if (isWin) {
-        // 当たりの場合
-        const slot = getRandomSlot();
-        resultDiv.className = 'result win';
-        resultDiv.innerHTML = `
-            <div>あたり！</div>
-            <div class="win-number">
-                当たり番号：<span class="win-number-circle">${slot.number}</span>
+    // ボタンを非表示
+    drawButton.style.display = 'none';
+    drawButton.disabled = true;
+    
+    // 花火を一時停止
+    isFireworksActive = false;
+    
+    // デバッグ情報を表示
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    console.log('抽選開始時刻:', `${hours}:${minutes.toString().padStart(2, '0')}`);
+    console.log('残りの当たり数:', getRemainingWins());
+    
+    // 抽選中の表示
+    result.innerHTML = `
+        <div class="dice-container">
+            <div class="dice left">
+                <div class="dice-face">
+                    <div class="dot"></div>
+                </div>
+                <div class="dice-face">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <div class="dice-face">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <div class="dice-face">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <div class="dice-face">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <div class="dice-face">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
             </div>
-        `;
-        createConfetti();
-        createSpecialFireworks();
-        saveLotteryData();
-    } else {
-        // はずれの場合
-        resultDiv.className = 'result lose';
-        resultDiv.innerHTML = 'はずれ';
-        createRain();
-    }
+            <span>抽選中...</span>
+            <div class="dice right">
+                <div class="dice-face">
+                    <div class="dot"></div>
+                </div>
+                <div class="dice-face">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <div class="dice-face">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <div class="dice-face">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <div class="dice-face">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+                <div class="dice-face">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
+        </div>
+    `;
 
-    // 残り当たり数を更新
-    updateRemainingDisplay();
+    // 抽選中の表示時間を2秒に設定
+    setTimeout(() => {
+        const currentTime = new Date();
+        const currentHour = currentTime.getHours();
+        const currentMinute = currentTime.getMinutes();
+        const currentTimeInMinutes = currentHour * 60 + currentMinute;
+
+        console.log('抽選判定時刻:', `${currentHour}:${currentMinute.toString().padStart(2, '0')}`);
+        console.log('残りの当たり数:', getRemainingWins());
+
+        if (currentTimeInMinutes < START_TIME || currentTimeInMinutes >= END_TIME) {
+            console.log('時間外のため当たりなし');
+            result.className = 'result time-out';
+            result.textContent = '抽選時間外です';
+            setTimeout(() => {
+                result.className = '';
+                result.innerHTML = '';
+                drawButton.textContent = 'くじを引く';
+                drawButton.style.display = 'inline-flex';
+                drawButton.disabled = false;
+                // 花火を再開
+                isFireworksActive = true;
+            }, 3000);
+            return;
+        }
+
+        const isFirstHalf = currentTimeInMinutes < FIRST_HALF_END;
+        const slot = isFirstHalf ? lotterySlots.firstHalf : lotterySlots.secondHalf;
+        
+        // 残りの当たり数をチェック
+        const remainingWins = getRemainingWins();
+        if (remainingWins <= 0) {
+            console.log('当たりが残っていないため当たりなし');
+            result.className = 'result lose';
+            result.textContent = '当たりがなくなりました';
+            setTimeout(() => {
+                result.className = '';
+                result.innerHTML = '';
+                drawButton.textContent = 'くじを引く';
+                drawButton.style.display = 'inline-flex';
+                drawButton.disabled = false;
+                // 花火を再開
+                isFireworksActive = true;
+            }, 3000);
+            return;
+        }
+
+        const isWin = determineWin();
+        console.log('当たり判定結果:', isWin);
+        
+        if (isWin) {
+            const winningNumber = generateRandomWinningNumber();
+            if (winningNumber) {
+                console.log('当選番号:', winningNumber);
+                result.className = 'result win';
+                result.innerHTML = `
+                    <div style="margin-bottom: 15px; font-size: 1.2em;">あたり！</div>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <span>当選番号：</span>
+                        <div class="win-number-circle">${winningNumber}</div>
+                    </div>
+                `;
+                playSound('win');
+                updateRemainingDisplay();
+                saveWinningNumber(winningNumber);
+
+                // 当たりの結果を5秒間表示
+                setTimeout(() => {
+                    result.className = '';
+                    result.innerHTML = '';
+                    drawButton.textContent = 'くじを引く';
+                    drawButton.style.display = 'inline-flex';
+                    drawButton.disabled = false;
+                    // 花火を再開
+                    isFireworksActive = true;
+                }, 5000);
+            }
+        } else {
+            console.log('はずれ');
+            result.className = 'result lose';
+            result.textContent = 'はずれ';
+            playSound('lose');
+            createRain();
+
+            // はずれの結果を3秒間表示
+            setTimeout(() => {
+                result.className = '';
+                result.innerHTML = '';
+                drawButton.textContent = 'くじを引く';
+                drawButton.style.display = 'inline-flex';
+                drawButton.disabled = false;
+                // 花火を再開
+                isFireworksActive = true;
+            }, 3000);
+        }
+    }, 2000);
 }
 
 // 初期表示時にデータを読み込み、残りの当たり数を表示
 document.addEventListener('DOMContentLoaded', () => {
     loadLotteryData();
+    const winningNumbers = loadWinningNumbers(); // 当たり番号を読み込む
+    loadUsedNumbers(); // 使用済み番号を読み込む
     updateRemainingDisplay();
     
     // 星と花火を生成
     createStars();
     startBackgroundFireworks();
+
+    // 初期表示時にボタンを表示
+    const drawButton = document.querySelector('.draw-button');
+    if (drawButton) {
+        drawButton.style.display = 'inline-flex';
+        drawButton.textContent = 'くじを引く';
+        drawButton.disabled = false;
+    }
 });
 
 // ランダムな当たり番号を取得
@@ -395,4 +984,56 @@ function getRandomSlot() {
         return currentSlot;
     }
     return null;
+}
+
+function updateRemainingCount() {
+    const remainingElement = document.querySelector('.remaining-number');
+    const currentCount = parseInt(remainingElement.textContent);
+    remainingElement.textContent = currentCount - 1;
+    remainingElement.classList.add('update');
+    setTimeout(() => {
+        remainingElement.classList.remove('update');
+    }, 500);
+}
+
+// 管理画面でリセットボタンがクリックされた時の処理
+function handleReset() {
+    if (confirm('抽選結果をリセットしますか？\nこの操作は取り消せません。')) {
+        resetLotteryData();
+        alert('抽選結果をリセットしました。');
+        // 管理画面の表示を更新
+        if (window.location.pathname.includes('admin.html')) {
+            displayWinningNumbers();
+        }
+    }
+}
+
+// 管理画面で当たり番号を表示する関数
+function displayWinningNumbers() {
+    const winningNumbersList = document.getElementById('winningNumbersList');
+    if (!winningNumbersList) return;
+
+    // 当たり番号を読み込む
+    const winningNumbers = loadWinningNumbers();
+    
+    // 当たり番号を時系列でソート
+    winningNumbers.sort((a, b) => {
+        const dateA = new Date(a.timestamp);
+        const dateB = new Date(b.timestamp);
+        return dateB - dateA;
+    });
+
+    // 当たり番号のリストを生成
+    let html = '';
+    winningNumbers.forEach(win => {
+        html += `
+            <div class="winning-number-item">
+                <span class="number">当選番号: ${win.number}</span>
+                <span class="timestamp">${win.timestamp}</span>
+            </div>
+        `;
+    });
+
+    // リストを更新
+    winningNumbersList.innerHTML = html;
 } 
