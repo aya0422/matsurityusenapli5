@@ -39,16 +39,47 @@ let lastWinTime = null;
 
 // グローバルなAudioContextを保持
 let globalAudioContext = null;
+let isAudioInitialized = false;
 
 // AudioContextを初期化する関数
 function initAudioContext() {
-    if (!globalAudioContext) {
-        globalAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (globalAudioContext.state === 'suspended') {
-        globalAudioContext.resume();
-    }
-    return globalAudioContext;
+    return new Promise((resolve, reject) => {
+        try {
+            if (!globalAudioContext) {
+                globalAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            if (globalAudioContext.state === 'suspended') {
+                // iOSデバイスでの問題を回避するため、ユーザーインタラクションを待つ
+                const resumeAudio = () => {
+                    globalAudioContext.resume().then(() => {
+                        console.log('AudioContextが再開されました');
+                        isAudioInitialized = true;
+                        resolve(globalAudioContext);
+                    }).catch(error => {
+                        console.error('AudioContextの再開に失敗しました:', error);
+                        reject(error);
+                    });
+                };
+
+                // ユーザーインタラクションを待つ
+                const handleInteraction = () => {
+                    resumeAudio();
+                    document.removeEventListener('touchstart', handleInteraction);
+                    document.removeEventListener('click', handleInteraction);
+                };
+
+                document.addEventListener('touchstart', handleInteraction);
+                document.addEventListener('click', handleInteraction);
+            } else {
+                isAudioInitialized = true;
+                resolve(globalAudioContext);
+            }
+        } catch (error) {
+            console.error('AudioContextの初期化に失敗しました:', error);
+            reject(error);
+        }
+    });
 }
 
 // 星を生成
@@ -396,39 +427,61 @@ function playButtonClickSound(audioContext) {
         oscillator.start();
         oscillator.stop(audioContext.currentTime + 0.1);
     } catch (error) {
-        console.warn('ボタンクリック音の再生に失敗しました:', error);
+        console.error('ボタンクリック音の再生に失敗しました:', error);
     }
 }
 
 // 効果音を生成・再生する関数
 function playSound(soundType) {
-    // AudioContextを初期化
-    const audioContext = initAudioContext();
-    
-    // iOSデバイスでの問題を回避するため、ユーザーインタラクションを待つ
-    if (audioContext.state === 'suspended') {
-        audioContext.resume().then(() => {
-            playSoundAfterInit(soundType, audioContext);
-        });
+    if (!isAudioInitialized) {
+        console.log('音声システムを初期化します...');
+        initAudioContext()
+            .then(audioContext => {
+                console.log('AudioContextの状態:', audioContext.state);
+                playSoundAfterInit(soundType, audioContext);
+            })
+            .catch(error => {
+                console.error('音声の再生に失敗しました:', error);
+            });
     } else {
-        playSoundAfterInit(soundType, audioContext);
+        playSoundAfterInit(soundType, globalAudioContext);
     }
 }
 
 // 初期化後の音声再生
 function playSoundAfterInit(soundType, audioContext) {
-    switch (soundType) {
-        case 'win':
-            playTaikoSound(audioContext);
-            setTimeout(() => playFireworkSound(audioContext), 300);
-            setTimeout(() => playWinSound(audioContext), 600);
-            break;
-        case 'lose':
-            playLoseSound(audioContext);
-            break;
-        case 'button':
-            playButtonClickSound(audioContext);
-            break;
+    try {
+        // 音声再生前に状態を確認
+        if (audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+                playSoundImmediately(soundType, audioContext);
+            });
+        } else {
+            playSoundImmediately(soundType, audioContext);
+        }
+    } catch (error) {
+        console.error('音声の再生に失敗しました:', error);
+    }
+}
+
+// 即時音声再生
+function playSoundImmediately(soundType, audioContext) {
+    try {
+        switch (soundType) {
+            case 'win':
+                playTaikoSound(audioContext);
+                setTimeout(() => playFireworkSound(audioContext), 300);
+                setTimeout(() => playWinSound(audioContext), 600);
+                break;
+            case 'lose':
+                playLoseSound(audioContext);
+                break;
+            case 'button':
+                playButtonClickSound(audioContext);
+                break;
+        }
+    } catch (error) {
+        console.error('音声の再生に失敗しました:', error);
     }
 }
 
@@ -1062,19 +1115,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // タッチイベントとクリックイベントの両方を処理
         const handleInteraction = () => {
-            initAudioContext();
-            // 一度だけイベントを削除
-            drawButton.removeEventListener('touchstart', handleInteraction);
-            drawButton.removeEventListener('click', handleInteraction);
+            if (!isAudioInitialized) {
+                initAudioContext()
+                    .then(() => {
+                        console.log('AudioContextが初期化されました');
+                    })
+                    .catch(error => {
+                        console.error('AudioContextの初期化に失敗しました:', error);
+                    });
+            }
         };
 
-        drawButton.addEventListener('touchstart', handleInteraction);
+        // クリックとタッチの両方のイベントをリッスン
         drawButton.addEventListener('click', handleInteraction);
+        drawButton.addEventListener('touchstart', handleInteraction);
     }
 
     // ページ全体のタッチイベントでも初期化
     document.addEventListener('touchstart', () => {
-        initAudioContext();
+        if (!isAudioInitialized) {
+            initAudioContext()
+                .then(() => {
+                    console.log('ページ全体のタッチでAudioContextが初期化されました');
+                })
+                .catch(error => {
+                    console.error('AudioContextの初期化に失敗しました:', error);
+                });
+        }
     }, { once: true });
 });
 
