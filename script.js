@@ -40,6 +40,11 @@ let lastWinTime = null;
 // 星を生成
 function createStars() {
     const starsContainer = document.querySelector('.stars');
+    if (!starsContainer) {
+        console.warn('Stars container not found');
+        return;
+    }
+    
     const starCount = 100;
     
     for (let i = 0; i < starCount; i++) {

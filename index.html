@@ -627,24 +627,23 @@
             right: 20px;
             left: auto;
             transform: none;
-            padding: 8px 20px;
-            background-color: #3498db;
+            padding: 2px 6px;
+            background: linear-gradient(45deg, #3498db, #2980b9);
             color: white;
             text-decoration: none;
-            border-radius: 20px;
-            font-size: 14px;
+            border-radius: 4px;
+            font-size: 11px;
             transition: all 0.3s;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             font-family: 'Zen Maru Gothic', sans-serif;
             white-space: nowrap;
             z-index: 1000;
             cursor: pointer;
-            display: inline-block;
-            border: 2px solid #fff;
+            display: inline-block !important;
+            border: 1px solid #fff;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-            background: linear-gradient(45deg, #3498db, #2980b9);
-            min-width: 80px;
             text-align: center;
+            pointer-events: auto;
         }
 
         .admin-link:hover {
@@ -999,6 +998,10 @@
         <div class="lantern"></div>
         <div class="lantern"></div>
     </div>
+    <a href="admin.html" style="position: fixed; top: 20px; right: 20px; padding: 8px 16px; background: #3498db; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); font-family: 'Zen Maru Gothic', sans-serif; white-space: nowrap; z-index: 9999; cursor: pointer; display: block; text-align: center; pointer-events: auto;">管理画面</a>
+    <div class="admin-button-wrapper">
+        <a href="admin.html" class="admin-link">管理画面</a>
+    </div>
     <div class="stalls">
         <div class="stall">
             <div class="stall-sign takoyaki">たこ焼き</div>
@@ -1059,7 +1062,6 @@
                 <div class="noren-strip"></div>
                 <div class="noren-strip"></div>
             </div>
-            <a href="admin.html" class="admin-link">管理画面</a>
         </div>
     </div>
     <div class="container">
@@ -1067,7 +1069,6 @@
         <button class="draw-button" onclick="drawLottery()">くじを引く</button>
         <div id="result" class="result"></div>
         <div class="remaining" id="remaining">残りのあたり：<span class="remaining-number">0</span>個</div>
-        <a href="admin.html" class="admin-link">管理画面</a>
     </div>
     <div id="rain" class="rain"></div>
     <script src="script.js"></script>
