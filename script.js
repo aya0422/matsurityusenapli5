@@ -405,25 +405,31 @@ function playSound(soundType) {
     // AudioContextを初期化
     const audioContext = initAudioContext();
     
-    // 音声の再生を少し遅延させる（iOSデバイスでの問題を回避）
-    setTimeout(() => {
-        switch (soundType) {
-            case 'win':
-                // 当たりの効果音（太鼓の音 + 花火の音 + 派手な当たり音）
-                playTaikoSound(audioContext);
-                setTimeout(() => playFireworkSound(audioContext), 300);
-                setTimeout(() => playWinSound(audioContext), 600);
-                break;
-            case 'lose':
-                // はずれの効果音（控えめな音）
-                playLoseSound(audioContext);
-                break;
-            case 'button':
-                // ボタンクリック音
-                playButtonClickSound(audioContext);
-                break;
-        }
-    }, 100);
+    // iOSデバイスでの問題を回避するため、ユーザーインタラクションを待つ
+    if (audioContext.state === 'suspended') {
+        audioContext.resume().then(() => {
+            playSoundAfterInit(soundType, audioContext);
+        });
+    } else {
+        playSoundAfterInit(soundType, audioContext);
+    }
+}
+
+// 初期化後の音声再生
+function playSoundAfterInit(soundType, audioContext) {
+    switch (soundType) {
+        case 'win':
+            playTaikoSound(audioContext);
+            setTimeout(() => playFireworkSound(audioContext), 300);
+            setTimeout(() => playWinSound(audioContext), 600);
+            break;
+        case 'lose':
+            playLoseSound(audioContext);
+            break;
+        case 'button':
+            playButtonClickSound(audioContext);
+            break;
+    }
 }
 
 // 太鼓の音を生成
@@ -845,8 +851,7 @@ function drawLottery() {
         return;
     }
 
-    // AudioContextを初期化してから音を再生
-    initAudioContext();
+    // 音声を再生
     playSound('button');
 
     // ボタンを非表示
@@ -1041,11 +1046,10 @@ function drawLottery() {
 // 初期表示時にデータを読み込み、残りの当たり数を表示
 document.addEventListener('DOMContentLoaded', () => {
     loadLotteryData();
-    const winningNumbers = loadWinningNumbers(); // 当たり番号を読み込む
-    loadUsedNumbers(); // 使用済み番号を読み込む
+    const winningNumbers = loadWinningNumbers();
+    loadUsedNumbers();
     updateRemainingDisplay();
     
-    // 星と花火を生成
     createStars();
     startBackgroundFireworks();
 
@@ -1056,13 +1060,19 @@ document.addEventListener('DOMContentLoaded', () => {
         drawButton.textContent = 'くじを引く';
         drawButton.disabled = false;
 
-        // ボタンクリック時にAudioContextを初期化
-        drawButton.addEventListener('click', () => {
+        // タッチイベントとクリックイベントの両方を処理
+        const handleInteraction = () => {
             initAudioContext();
-        });
+            // 一度だけイベントを削除
+            drawButton.removeEventListener('touchstart', handleInteraction);
+            drawButton.removeEventListener('click', handleInteraction);
+        };
+
+        drawButton.addEventListener('touchstart', handleInteraction);
+        drawButton.addEventListener('click', handleInteraction);
     }
 
-    // タッチイベントでもAudioContextを初期化
+    // ページ全体のタッチイベントでも初期化
     document.addEventListener('touchstart', () => {
         initAudioContext();
     }, { once: true });
