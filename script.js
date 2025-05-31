@@ -37,6 +37,20 @@ let backgroundFireworksInterval;
 // 最後の当たりが出た時刻を保存する変数
 let lastWinTime = null;
 
+// グローバルなAudioContextを保持
+let globalAudioContext = null;
+
+// AudioContextを初期化する関数
+function initAudioContext() {
+    if (!globalAudioContext) {
+        globalAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (globalAudioContext.state === 'suspended') {
+        globalAudioContext.resume();
+    }
+    return globalAudioContext;
+}
+
 // 星を生成
 function createStars() {
     const starsContainer = document.querySelector('.stars');
@@ -237,6 +251,9 @@ function resetLotteryData(winningNumbers = []) {
     
     // 残りの当たり数を更新
     updateRemainingDisplay();
+
+    // 当たり番号の履歴をクリア
+    localStorage.removeItem('winningNumbers');
 }
 
 // データをローカルストレージに保存
@@ -360,149 +377,180 @@ function toggleDrawButton(show, isResult = false) {
     }
 }
 
+// ボタンクリック音を生成
+function playButtonClickSound(audioContext) {
+    try {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4
+        oscillator.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 0.1); // A5
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.1);
+    } catch (error) {
+        console.warn('ボタンクリック音の再生に失敗しました:', error);
+    }
+}
+
 // 効果音を生成・再生する関数
 function playSound(soundType) {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    // AudioContextを初期化
+    const audioContext = initAudioContext();
     
-    switch (soundType) {
-        case 'win':
-            // 当たりの効果音（太鼓の音 + 花火の音 + 派手な当たり音）
-            playTaikoSound(audioContext);
-            setTimeout(() => playFireworkSound(audioContext), 300);
-            setTimeout(() => playWinSound(audioContext), 600);
-            break;
-        case 'lose':
-            // はずれの効果音（控えめな音）
-            playLoseSound(audioContext);
-            break;
-    }
+    // 音声の再生を少し遅延させる（iOSデバイスでの問題を回避）
+    setTimeout(() => {
+        switch (soundType) {
+            case 'win':
+                // 当たりの効果音（太鼓の音 + 花火の音 + 派手な当たり音）
+                playTaikoSound(audioContext);
+                setTimeout(() => playFireworkSound(audioContext), 300);
+                setTimeout(() => playWinSound(audioContext), 600);
+                break;
+            case 'lose':
+                // はずれの効果音（控えめな音）
+                playLoseSound(audioContext);
+                break;
+            case 'button':
+                // ボタンクリック音
+                playButtonClickSound(audioContext);
+                break;
+        }
+    }, 100);
 }
 
 // 太鼓の音を生成
 function playTaikoSound(audioContext) {
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(100, audioContext.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.2);
-    
-    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.2);
+    try {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(100, audioContext.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.2);
+        
+        gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.2);
+    } catch (error) {
+        console.warn('音声の再生に失敗しました:', error);
+    }
 }
 
 // 花火の音を生成
 function playFireworkSound(audioContext) {
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.3);
-    
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.3);
+    try {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.3);
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (error) {
+        console.warn('音声の再生に失敗しました:', error);
+    }
 }
 
 // 当たりの音を生成
 function playWinSound(audioContext) {
-    // メインの音
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    // 和音を生成
-    const frequencies = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
-    const currentTime = audioContext.currentTime;
-    
-    // 音量エンベロープ
-    gainNode.gain.setValueAtTime(0, currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.5, currentTime + 0.1);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 1.0);
-    
-    // 周波数変化
-    oscillator.frequency.setValueAtTime(frequencies[0], currentTime);
-    oscillator.frequency.setValueAtTime(frequencies[1], currentTime + 0.1);
-    oscillator.frequency.setValueAtTime(frequencies[2], currentTime + 0.2);
-    oscillator.frequency.setValueAtTime(frequencies[3], currentTime + 0.3);
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.start();
-    oscillator.stop(currentTime + 1.0);
+    try {
+        // メインの音
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        // 和音を生成
+        const frequencies = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        const currentTime = audioContext.currentTime;
+        
+        // 音量エンベロープ
+        gainNode.gain.setValueAtTime(0, currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.5, currentTime + 0.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, currentTime + 1.0);
+        
+        // 周波数変化
+        oscillator.frequency.setValueAtTime(frequencies[0], currentTime);
+        oscillator.frequency.setValueAtTime(frequencies[1], currentTime + 0.1);
+        oscillator.frequency.setValueAtTime(frequencies[2], currentTime + 0.2);
+        oscillator.frequency.setValueAtTime(frequencies[3], currentTime + 0.3);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.start();
+        oscillator.stop(currentTime + 1.0);
 
-    // 追加の効果音
-    setTimeout(() => {
-        const subOscillator = audioContext.createOscillator();
-        const subGainNode = audioContext.createGain();
-        
-        subOscillator.type = 'sine';
-        subOscillator.frequency.setValueAtTime(392.00, audioContext.currentTime); // G4
-        subOscillator.frequency.setValueAtTime(523.25, audioContext.currentTime + 0.1); // C5
-        subOscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.2); // E5
-        
-        subGainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-        subGainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-        
-        subOscillator.connect(subGainNode);
-        subGainNode.connect(audioContext.destination);
-        
-        subOscillator.start();
-        subOscillator.stop(audioContext.currentTime + 0.5);
-    }, 200);
-
-    // さらに追加の効果音
-    setTimeout(() => {
-        const finalOscillator = audioContext.createOscillator();
-        const finalGainNode = audioContext.createGain();
-        
-        finalOscillator.type = 'square';
-        finalOscillator.frequency.setValueAtTime(1046.50, audioContext.currentTime); // C6
-        finalOscillator.frequency.setValueAtTime(1318.51, audioContext.currentTime + 0.1); // E6
-        finalOscillator.frequency.setValueAtTime(1567.98, audioContext.currentTime + 0.2); // G6
-        
-        finalGainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-        finalGainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-        
-        finalOscillator.connect(finalGainNode);
-        finalGainNode.connect(audioContext.destination);
-        
-        finalOscillator.start();
-        finalOscillator.stop(audioContext.currentTime + 0.3);
-    }, 400);
+        // 追加の効果音
+        setTimeout(() => {
+            try {
+                const subOscillator = audioContext.createOscillator();
+                const subGainNode = audioContext.createGain();
+                
+                subOscillator.type = 'sine';
+                subOscillator.frequency.setValueAtTime(392.00, audioContext.currentTime); // G4
+                subOscillator.frequency.setValueAtTime(523.25, audioContext.currentTime + 0.1); // C5
+                subOscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.2); // E5
+                
+                subGainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                subGainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                
+                subOscillator.connect(subGainNode);
+                subGainNode.connect(audioContext.destination);
+                
+                subOscillator.start();
+                subOscillator.stop(audioContext.currentTime + 0.5);
+            } catch (error) {
+                console.warn('追加の効果音の再生に失敗しました:', error);
+            }
+        }, 200);
+    } catch (error) {
+        console.warn('当たり音の再生に失敗しました:', error);
+    }
 }
 
 // はずれの音を生成
 function playLoseSound(audioContext) {
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(392, audioContext.currentTime); // G4
-    oscillator.frequency.exponentialRampToValueAtTime(349.23, audioContext.currentTime + 0.3); // F4
-    oscillator.frequency.exponentialRampToValueAtTime(329.63, audioContext.currentTime + 0.6); // E4
-    
-    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.15, audioContext.currentTime + 0.3);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.6);
+    try {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(392, audioContext.currentTime); // G4
+        oscillator.frequency.exponentialRampToValueAtTime(349.23, audioContext.currentTime + 0.3); // F4
+        oscillator.frequency.exponentialRampToValueAtTime(329.63, audioContext.currentTime + 0.6); // E4
+        
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.15, audioContext.currentTime + 0.3);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.6);
+    } catch (error) {
+        console.warn('はずれ音の再生に失敗しました:', error);
+    }
 }
 
 // 当たり番号を保存する関数
@@ -796,7 +844,11 @@ function drawLottery() {
         console.error('ボタンが見つかりません');
         return;
     }
-    
+
+    // AudioContextを初期化してから音を再生
+    initAudioContext();
+    playSound('button');
+
     // ボタンを非表示
     drawButton.style.display = 'none';
     drawButton.disabled = true;
@@ -1003,7 +1055,17 @@ document.addEventListener('DOMContentLoaded', () => {
         drawButton.style.display = 'inline-flex';
         drawButton.textContent = 'くじを引く';
         drawButton.disabled = false;
+
+        // ボタンクリック時にAudioContextを初期化
+        drawButton.addEventListener('click', () => {
+            initAudioContext();
+        });
     }
+
+    // タッチイベントでもAudioContextを初期化
+    document.addEventListener('touchstart', () => {
+        initAudioContext();
+    }, { once: true });
 });
 
 // ランダムな当たり番号を取得
