@@ -612,6 +612,21 @@ function determineWin() {
     if (currentTimeInMinutes < FIRST_HALF_END) {
         const minutesSinceLastWin = currentTimeInMinutes - lastWinTime;
         const firstHalfRemaining = lotterySlots.firstHalf.filter(slot => !slot.used).length;
+        const remainingTime = FIRST_HALF_END - currentTimeInMinutes;
+
+        // 残り時間で当たりが出し切れない可能性がある場合
+        if (firstHalfRemaining > 0 && remainingTime < firstHalfRemaining * 10) {
+            // 残り時間に応じて間隔を調整
+            const adjustedInterval = Math.floor(remainingTime / firstHalfRemaining);
+            if (minutesSinceLastWin >= adjustedInterval) {
+                console.log('前半の当たり判定（調整済み）: 当たり', '調整後の間隔:', adjustedInterval, '分');
+                return true;
+            }
+            console.log('前半の当たり判定（調整済み）: はずれ', '次の当たりまで:', adjustedInterval - minutesSinceLastWin, '分');
+            return false;
+        }
+
+        // 通常の10分間隔での判定
         if (firstHalfRemaining > 0 && minutesSinceLastWin >= 10) {
             console.log('前半の当たり判定: 当たり', '最後の当たりから経過分数:', minutesSinceLastWin);
             return true;
@@ -623,6 +638,21 @@ function determineWin() {
     else {
         const minutesSinceLastWin = currentTimeInMinutes - lastWinTime;
         const secondHalfRemaining = lotterySlots.secondHalf.filter(slot => !slot.used).length;
+        const remainingTime = END_TIME - currentTimeInMinutes;
+
+        // 残り時間で当たりが出し切れない可能性がある場合
+        if (secondHalfRemaining > 0 && remainingTime < secondHalfRemaining * 20) {
+            // 残り時間に応じて間隔を調整
+            const adjustedInterval = Math.floor(remainingTime / secondHalfRemaining);
+            if (minutesSinceLastWin >= adjustedInterval) {
+                console.log('後半の当たり判定（調整済み）: 当たり', '調整後の間隔:', adjustedInterval, '分');
+                return true;
+            }
+            console.log('後半の当たり判定（調整済み）: はずれ', '次の当たりまで:', adjustedInterval - minutesSinceLastWin, '分');
+            return false;
+        }
+
+        // 通常の20分間隔での判定
         if (secondHalfRemaining > 0 && minutesSinceLastWin >= 20) {
             console.log('後半の当たり判定: 当たり', '最後の当たりから経過分数:', minutesSinceLastWin);
             return true;

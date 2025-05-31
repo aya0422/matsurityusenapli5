@@ -1064,9 +1064,10 @@
     </div>
     <div class="container">
         <h1>お祭り抽選</h1>
-        <button class="draw-button" onclick="drawLottery()">くじを引く<span class="target-illustration">🎯</span></button>
+        <button class="draw-button" onclick="drawLottery()">くじを引く</button>
         <div id="result" class="result"></div>
-        <div id="remaining" class="remaining">残りの当たり：<span class="remaining-number">0</span>個</div>
+        <div class="remaining" id="remaining">残りのあたり：<span class="remaining-number">0</span>個</div>
+        <a href="admin.html" class="admin-link">管理画面</a>
     </div>
     <div id="rain" class="rain"></div>
     <script src="script.js"></script>
