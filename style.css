@@ -1,0 +1,119 @@
+/* 管理画面ボタンのスタイル */
+.admin-button-wrapper {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    pointer-events: auto;
+}
+
+.admin-link {
+    display: block !important;
+    padding: 8px 16px !important;
+    background: #3498db !important;
+    color: white !important;
+    text-decoration: none !important;
+    border-radius: 6px !important;
+    font-size: 14px !important;
+    font-weight: bold !important;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    font-family: 'Zen Maru Gothic', sans-serif;
+    white-space: nowrap;
+    cursor: pointer;
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    position: relative;
+    z-index: 1000;
+    min-width: auto;
+    max-width: none;
+}
+
+.admin-link:hover {
+    background: #2980b9 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.admin-link:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+@media (max-width: 768px) {
+    .admin-link {
+        padding: 10px 20px !important;
+        font-size: 16px !important;
+    }
+}
+
+.lantern {
+    width: 40px;
+    height: 60px;
+    background: #e74c3c;
+    border-radius: 20px;
+    position: relative;
+    box-shadow: 0 0 20px rgba(231, 76, 60, 0.6);
+}
+
+.lantern::before {
+    content: '🏮';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+}
+
+.lantern .admin-link {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px;
+    background: linear-gradient(45deg, #3498db, #2980b9);
+    color: white;
+    text-decoration: none;
+    border-radius: 50%;
+    font-size: 28px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    font-family: 'Zen Maru Gothic', sans-serif;
+    white-space: nowrap;
+    z-index: 1000;
+    cursor: pointer;
+    display: block !important;
+    border: 2px solid #fff;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    width: 52px;
+    height: 52px;
+    text-align: center;
+    line-height: 52px;
+    pointer-events: auto;
+    margin-top: 15px;
+}
+
+.lantern .admin-link:hover {
+    background: linear-gradient(45deg, #2980b9, #3498db);
+}
+
+.lantern .admin-link:active {
+    background: linear-gradient(45deg, #2980b9, #3498db);
+}
+
+@media (max-width: 768px) {
+    .lantern .admin-link {
+        padding: 14px;
+        font-size: 32px;
+        width: 60px;
+        height: 60px;
+        line-height: 60px;
+    }
+}
+
+/* 屋台の装飾用の管理画面リンクを非表示 */
+.stall .admin-link {
+    display: none !important;
+} 

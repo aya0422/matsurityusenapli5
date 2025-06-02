@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>お祭り抽選アプリ</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="stars"></div>
+    <div class="lanterns">
+        <div class="lantern"></div>
+        <div class="lantern"></div>
+        <div class="lantern"></div>
+        <div class="lantern"></div>
+        <div class="lantern"></div>
+    </div>
+    <div class="admin-button-wrapper">
+        <a href="admin.html" class="admin-link">管理画面</a>
+    </div>
+    <div class="stalls">
+        <div class="stall">
+            <div class="stall-sign takoyaki">たこ焼き</div>
+            <div class="stall-decoration"></div>
+            <div class="stall-light"></div>
+            <div class="stall-noren">
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+            </div>
+        </div>
+        <div class="stall">
+            <div class="stall-sign yakisoba">焼きそば</div>
+            <div class="stall-decoration"></div>
+            <div class="stall-light"></div>
+            <div class="stall-noren">
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+            </div>
+        </div>
+        <div class="stall">
+            <div class="stall-sign kakigori">かき氷</div>
+            <div class="stall-decoration"></div>
+            <div class="stall-light"></div>
+            <div class="stall-noren">
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+            </div>
+        </div>
+        <div class="stall">
+            <div class="stall-sign ringoame">りんご飴</div>
+            <div class="stall-decoration"></div>
+            <div class="stall-light"></div>
+            <div class="stall-noren">
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+            </div>
+        </div>
+        <div class="stall">
+            <div class="stall-sign kingyo">金魚すくい</div>
+            <div class="stall-decoration"></div>
+            <div class="stall-light"></div>
+            <div class="stall-noren">
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+                <div class="noren-strip"></div>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <h1>お祭り抽選</h1>
+        <button class="draw-button" onclick="drawLottery()">くじを引く</button>
+        <div id="result" class="result"></div>
+        <div class="remaining" id="remaining">残りのあたり：<span class="remaining-number">0</span>個</div>
+    </div>
+    <div id="rain" class="rain"></div>
+    <script src="script.js"></script>
+</body>
+</html> 

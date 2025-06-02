@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抽選管理画面</title>
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f6fa;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #2d3436;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .winning-numbers {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .winning-number-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .winning-number-item:last-child {
+            border-bottom: none;
+        }
+        .number {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        .timestamp {
+            color: #7f8c8d;
+        }
+        .no-data {
+            text-align: center;
+            color: #7f8c8d;
+            padding: 20px;
+        }
+        .refresh-button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .refresh-button:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .refresh-button:active {
+            transform: translateY(1px);
+        }
+        .back-link {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: all 0.3s;
+            text-align: center;
+            width: fit-content;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .back-link:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .back-link:active {
+            transform: translateY(1px);
+        }
+        .reset-button {
+            background-color: #e74c3c;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        .reset-button:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+        }
+        .reset-button:active {
+            transform: translateY(1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>抽選管理画面</h1>
+        <div class="winning-numbers">
+            <div id="winningNumbersList"></div>
+        </div>
+        <div class="button-container">
+            <button class="refresh-button" onclick="loadWinningNumbers()">更新</button>
+            <a href="index.html" class="back-link">抽選画面に戻る</a>
+        </div>
+        <button class="reset-button" onclick="handleReset()">抽選結果をリセット</button>
+    </div>
+    <script src="script.js"></script>
+    <script>
+        // 当たり番号を表示する関数
+        function displayWinningNumbers() {
+            const winningNumbersList = document.getElementById('winningNumbersList');
+            const savedNumbers = localStorage.getItem('winningNumbers');
+            
+            if (!savedNumbers || JSON.parse(savedNumbers).length === 0) {
+                winningNumbersList.innerHTML = '<div class="no-data">当選番号はまだありません</div>';
+                return;
+            }
+
+            const numbers = JSON.parse(savedNumbers);
+            winningNumbersList.innerHTML = numbers.map(item => `
+                <div class="winning-number-item">
+                    <span class="number">当選番号: ${item.number}</span>
+                    <span class="timestamp">${item.timestamp}</span>
+                </div>
+            `).join('');
+        }
+
+        // 当たり番号を読み込む関数
+        function loadWinningNumbers() {
+            displayWinningNumbers();
+        }
+
+        // 初期表示時に当たり番号を読み込む
+        document.addEventListener('DOMContentLoaded', () => {
+            loadWinningNumbers();
+            // 定期的に更新（5秒ごと）
+            setInterval(loadWinningNumbers, 5000);
+        });
+    </script>
+</body>
+</html> 
