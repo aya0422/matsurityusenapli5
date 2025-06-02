@@ -1210,4 +1210,95 @@ function displayWinningNumbers() {
 
     // リストを更新
     winningNumbersList.innerHTML = html;
-} 
+}
+
+// くじの設定
+const totalTickets = 100; // くじの総数
+let remainingTickets = totalTickets; // 残りのくじの数
+let winningTickets = 0; // 当たりくじの数
+
+// くじを引く関数
+function drawLottery() {
+    if (remainingTickets <= 0) {
+        alert('くじがなくなりました！');
+        return;
+    }
+
+    // 残りのくじから1枚引く
+    remainingTickets--;
+
+    // 当たりかどうかを判定（10%の確率で当たり）
+    const isWin = Math.random() < 0.1;
+    if (isWin) {
+        winningTickets++;
+    }
+
+    // 結果を表示
+    const resultElement = document.getElementById('result');
+    resultElement.textContent = isWin ? '🎉 当たり！ 🎉' : 'はずれ...';
+    resultElement.className = 'result ' + (isWin ? 'win' : 'lose');
+
+    // 残りのくじの数を更新
+    updateRemainingTickets();
+
+    // 当たりの場合は花火を表示
+    if (isWin) {
+        showFireworks();
+    }
+}
+
+// 残りのくじの数を更新する関数
+function updateRemainingTickets() {
+    const remainingElement = document.getElementById('remaining');
+    remainingElement.querySelector('.remaining-number').textContent = remainingTickets;
+}
+
+// 花火を表示する関数
+function showFireworks() {
+    const rain = document.getElementById('rain');
+    rain.innerHTML = '';
+    
+    // 花火の数を設定
+    const fireworkCount = 50;
+    
+    for (let i = 0; i < fireworkCount; i++) {
+        const firework = document.createElement('div');
+        firework.className = 'firework';
+        
+        // 花火の位置をランダムに設定
+        const startX = Math.random() * window.innerWidth;
+        const startY = window.innerHeight;
+        const endX = startX + (Math.random() - 0.5) * 200;
+        const endY = startY - Math.random() * 300;
+        
+        // 花火の色をランダムに設定
+        const colors = ['#ff0', '#f0f', '#0ff', '#f00', '#0f0'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        
+        // 花火のスタイルを設定
+        firework.style.left = startX + 'px';
+        firework.style.top = startY + 'px';
+        firework.style.backgroundColor = color;
+        
+        // 花火のアニメーションを設定
+        firework.animate([
+            { transform: 'translate(0, 0)', opacity: 1 },
+            { transform: `translate(${endX - startX}px, ${endY - startY}px)`, opacity: 0 }
+        ], {
+            duration: 1000 + Math.random() * 1000,
+            easing: 'cubic-bezier(0.1, 0.8, 0.2, 1)'
+        });
+        
+        rain.appendChild(firework);
+        
+        // アニメーション終了後に花火を削除
+        setTimeout(() => {
+            firework.remove();
+        }, 2000);
+    }
+}
+
+// ページ読み込み時に残りのくじの数を表示
+window.onload = function() {
+    updateRemainingTickets();
+}; 
