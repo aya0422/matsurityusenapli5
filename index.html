@@ -116,36 +116,6 @@
             pointer-events: none;
         }
 
-        .stall .admin-link {
-            position: absolute;
-            bottom: -40px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 8px 15px;
-            background-color: #3498db;
-            color: white;
-            text-decoration: none;
-            border-radius: 15px;
-            font-size: 14px;
-            transition: all 0.3s;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            font-family: 'Zen Maru Gothic', sans-serif;
-            white-space: nowrap;
-            z-index: 100;
-            cursor: pointer;
-            pointer-events: auto;
-        }
-
-        .stall .admin-link:hover {
-            background-color: #2980b9;
-            transform: translateX(-50%) translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-
-        .stall .admin-link:active {
-            transform: translateX(-50%) translateY(1px);
-        }
-
         .stall-sign {
             position: absolute;
             top: -25px;
@@ -621,41 +591,6 @@
             100% { transform: scale(1); }
         }
 
-        .admin-link {
-            position: absolute;
-            bottom: -40px;
-            right: 20px;
-            left: auto;
-            transform: none;
-            padding: 2px 6px;
-            background: linear-gradient(45deg, #3498db, #2980b9);
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            font-size: 11px;
-            transition: all 0.3s;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            font-family: 'Zen Maru Gothic', sans-serif;
-            white-space: nowrap;
-            z-index: 1000;
-            cursor: pointer;
-            display: none !important;
-            border: 1px solid #fff;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-            text-align: center;
-            pointer-events: auto;
-        }
-
-        .admin-link:hover {
-            background: linear-gradient(45deg, #2980b9, #3498db);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-
-        .admin-link:active {
-            transform: translateY(1px);
-        }
-
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.1); }
@@ -997,10 +932,6 @@
         <div class="lantern"></div>
         <div class="lantern"></div>
         <div class="lantern"></div>
-    </div>
-    <a href="admin.html" style="position: fixed; top: 20px; right: 20px; padding: 8px 16px; background: #3498db; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); font-family: 'Zen Maru Gothic', sans-serif; white-space: nowrap; z-index: 9999; cursor: pointer; display: none; text-align: center; pointer-events: auto;">管理画面</a>
-    <div class="admin-button-wrapper">
-        <a href="admin.html" class="admin-link">管理画面</a>
     </div>
     <div class="stalls">
         <div class="stall">
